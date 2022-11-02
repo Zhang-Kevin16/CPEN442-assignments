@@ -6,6 +6,7 @@ import pygubu
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox
+import traceback
 
 # local import from "protocol.py"
 from protocol import Protocol
@@ -142,6 +143,7 @@ class Assignment3VPN:
             try:
                 # Receiving all the data
                 cipher_text = self.conn.recv(4096)
+                print(cipher_text)
 
                 # Check if socket is still open
                 if cipher_text == None or len(cipher_text) == 0:
@@ -177,7 +179,7 @@ class Assignment3VPN:
                     self._AppendMessage("Other: {}".format(plain_text.decode()))
                     
             except Exception as e:
-                self._AppendLog("RECEIVER_THREAD: Error receiving data: {}".format(str(e)))
+                self._AppendLog("RECEIVER_THREAD: Error receiving data: {}".format(str(e)) + traceback.format_exc())
                 return False
 
 
@@ -185,9 +187,11 @@ class Assignment3VPN:
     def _SendMessage(self, message):
         plain_text = message
         if (self.prtcl.auth_finished):
+            self._AppendLog('encrypting')
             cipher_text = self.prtcl.EncryptAndProtectMessage(plain_text)
             self.conn.send(cipher_text)
         else:
+            self._AppendLog('not encrypting')
             self.conn.send(plain_text)
             
 
@@ -211,7 +215,7 @@ class Assignment3VPN:
                 self._AppendMessage("You: {}".format(text))
                 self.textMessage.set("")
             except Exception as e:
-                self._AppendLog("SENDING_MESSAGE: Error sending data: {}".format(str(e)))
+                self._AppendLog("SENDING_MESSAGE: Error sending data: {}".format(str(e)) + traceback.format_exc)
                 
         else:
             messagebox.showerror("Networking", "Either the message is empty or the connection is not established.")

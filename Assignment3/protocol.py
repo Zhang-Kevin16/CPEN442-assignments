@@ -133,6 +133,11 @@ class Protocol:
             self._ga_mod_p = self._dha.public_key()
 
             decrypted_block = b'CLNT' + PublicKeyToBytes(self._ga_mod_p) + self._rb
+
+            self.SetSessionKey(self._dha.exchange(self._gb_mod_p))
+
+            self.auth_finished = True
+
             return b'MSG2' + self._iv2 + self._aesgcm.encrypt(self._iv2, decrypted_block, None)
             
 
@@ -142,6 +147,7 @@ class Protocol:
 
             self._iv2, encrypted_msg = PopNumBytes(msg, IV_LEN)
             clnt_const, self._ga_mod_p, rb = DecryptAndParse(encrypted_msg, self._aesgcm, self._iv2, pn)
+
             
             if clnt_const != CLNT_STR:
                 raise Exception(f'SRVR (MSG3): clnt_const{clnt_const}, SLNT_STR={CLNT_STR}')
@@ -149,8 +155,9 @@ class Protocol:
             if rb != self._rb:
                 raise Exception(f'SRVR (MSG3): rb={rb}, self._rb={self._rb}')
 
+            self.SetSessionKey(self._dhb.exchange(self._ga_mod_p))
+
             self.auth_finished = True
-            print('gabagool')
             return False
 
 
@@ -161,6 +168,7 @@ class Protocol:
     # TODO: MODIFY AS YOU SEEM FIT
     def SetSessionKey(self, key):
         self._session_aesgcm = AESGCM(hashlib.sha256(key).digest())
+        self._key = key
         pass
 
 
@@ -170,7 +178,6 @@ class Protocol:
     def EncryptAndProtectMessage(self, plain_text):
         iv = os.urandom(12)
         cipher_text = self._session_aesgcm.encrypt(iv, plain_text, None)
-        cipher_text = plain_text
         return iv + cipher_text
 
 
@@ -179,6 +186,6 @@ class Protocol:
     # RETURN AN ERROR MESSAGE IF INTEGRITY VERITIFCATION OR AUTHENTICATION FAILS
     def DecryptAndVerifyMessage(self, cipher_text):
         nonce = cipher_text[0:12]
-        plain_text = self._session_aesgcm.decrypt(nonce,cipher_text[12:])
+        plain_text = self._session_aesgcm.decrypt(nonce, cipher_text[12:], None)
         return plain_text
         
