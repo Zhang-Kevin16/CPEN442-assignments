@@ -151,14 +151,29 @@ class Assignment3VPN:
                 # Checking if the received message is part of your protocol
                 # TODO: MODIFY THE INPUT ARGUMENTS AND LOGIC IF NECESSARY
                 if self.prtcl.IsMessagePartOfProtocol(cipher_text):
+                    self._AppendLog("received protocol message")
+                    self.prtcl.InitSharedKey(self.sharedSecret.get())
                     # Disabling the button to prevent repeated clicks
                     self.secureButton["state"] = "disabled"
                     # Processing the protocol message
-                    self.prtcl.ProcessReceivedProtocolMessage(cipher_text)
+                    nextMsg = self.prtcl.ProcessReceivedProtocolMessage(cipher_text)
+                    
+                    if (nextMsg):
+                        #self._AppendLog(nextMsg.decode('unicode_escape'))
+                        self._AppendLog('sending response')
+                        self.conn.send(nextMsg)
+
+                    # figure out if we need to do anything after the final message has been received...
+                    
+                    
+                    
 
                 # Otherwise, decrypting and showing the messaage
                 else:
-                    plain_text = self.prtcl.DecryptAndVerifyMessage(cipher_text)
+                    if (self.prtcl.auth_finished):
+                        plain_text = self.prtcl.DecryptAndVerifyMessage(cipher_text)
+                    else:
+                        plain_text = cipher_text
                     self._AppendMessage("Other: {}".format(plain_text.decode()))
                     
             except Exception as e:
@@ -169,8 +184,11 @@ class Assignment3VPN:
     # Send data to the other party
     def _SendMessage(self, message):
         plain_text = message
-        cipher_text = self.prtcl.EncryptAndProtectMessage(plain_text)
-        self.conn.send(cipher_text.encode())
+        if (self.prtcl.auth_finished):
+            cipher_text = self.prtcl.EncryptAndProtectMessage(plain_text)
+            self.conn.send(cipher_text)
+        else:
+            self.conn.send(plain_text)
             
 
     # Secure connection with mutual authentication and key establishment
@@ -179,8 +197,9 @@ class Assignment3VPN:
         self.secureButton["state"] = "disabled"
 
         # TODO: THIS IS WHERE YOU SHOULD IMPLEMENT THE START OF YOUR MUTUAL AUTHENTICATION AND KEY ESTABLISHMENT PROTOCOL, MODIFY AS YOU SEEM FIT
+        self.prtcl.InitSharedKey(self.sharedSecret.get())
         init_message = self.prtcl.GetProtocolInitiationMessage()
-        self._SendMessage(init_message)
+        self.conn.send(init_message)
 
 
     # Called when SendMessage button is clicked
@@ -188,7 +207,7 @@ class Assignment3VPN:
         text = self.textMessage.get()
         if  text != "" and self.s is not None:
             try:
-                self._SendMessage(text)
+                self._SendMessage(text.encode())
                 self._AppendMessage("You: {}".format(text))
                 self.textMessage.set("")
             except Exception as e:
