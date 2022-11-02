@@ -10,21 +10,6 @@ NONCE_LEN = 16
 IV_LEN = 12
 MSG_TYPES_LEN = len(MSG_TYPES[0])
 
-MSG_INDEXES = [
-    {
-        "MSG0": (0,4),
-        "RA": (4,4+16)
-    },
-    {
-        "MSG1": (0,4),
-        "RB": (4,4+16)
-    },
-    {
-        "MSG2": (0,4),
-
-    },
-]
-
 CLNT_STR = b"CLNT"
 SRVR_STR = b"SRVR"
 
@@ -81,7 +66,7 @@ class Protocol:
     # Creating the initial message of your protocol (to be send to the other party to bootstrap the protocol)
     # TODO: IMPLEMENT THE LOGIC (MODIFY THE INPUT ARGUMENTS AS YOU SEEM FIT)
     def GetProtocolInitiationMessage(self):
-        self._ra = os.urandom(NONCE_LEN) # TODO, investigate size to make this
+        self._ra = os.urandom(NONCE_LEN)
         
         return b"MSG0"+self._ra
 
@@ -104,8 +89,8 @@ class Protocol:
             self._dhb = parameters.generate_private_key()
             self._gb_mod_p = self._dhb.public_key()
 
-            self._rb = os.urandom(NONCE_LEN) # TODO, investigate size to make this
-            self._iv1 = os.urandom(IV_LEN) # TODO, investigate size to make this
+            self._rb = os.urandom(NONCE_LEN)
+            self._iv1 = os.urandom(IV_LEN)
             decrypted_block = b"SRVR" + PublicKeyToBytes(self._gb_mod_p) + self._ra
             
             return b"MSG1" + self._rb + self._iv1 + self._aesgcm.encrypt(self._iv1, decrypted_block, None)

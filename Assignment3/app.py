@@ -153,16 +153,14 @@ class Assignment3VPN:
                 # Checking if the received message is part of your protocol
                 # TODO: MODIFY THE INPUT ARGUMENTS AND LOGIC IF NECESSARY
                 if self.prtcl.IsMessagePartOfProtocol(cipher_text):
-                    self._AppendLog("received protocol message")
                     self.prtcl.InitSharedKey(self.sharedSecret.get())
                     # Disabling the button to prevent repeated clicks
                     self.secureButton["state"] = "disabled"
                     # Processing the protocol message
                     nextMsg = self.prtcl.ProcessReceivedProtocolMessage(cipher_text)
-                    
+                    if (self.prtcl.auth_finished):
+                        self._AppendLog("Connection Secured")
                     if (nextMsg):
-                        #self._AppendLog(nextMsg.decode('unicode_escape'))
-                        self._AppendLog('sending response')
                         self.conn.send(nextMsg)
 
                     # figure out if we need to do anything after the final message has been received...
@@ -187,11 +185,9 @@ class Assignment3VPN:
     def _SendMessage(self, message):
         plain_text = message
         if (self.prtcl.auth_finished):
-            self._AppendLog('encrypting')
             cipher_text = self.prtcl.EncryptAndProtectMessage(plain_text)
             self.conn.send(cipher_text)
         else:
-            self._AppendLog('not encrypting')
             self.conn.send(plain_text)
             
 
@@ -201,6 +197,7 @@ class Assignment3VPN:
         self.secureButton["state"] = "disabled"
 
         # TODO: THIS IS WHERE YOU SHOULD IMPLEMENT THE START OF YOUR MUTUAL AUTHENTICATION AND KEY ESTABLISHMENT PROTOCOL, MODIFY AS YOU SEEM FIT
+        self._AppendLog("Securing Connection")
         self.prtcl.InitSharedKey(self.sharedSecret.get())
         init_message = self.prtcl.GetProtocolInitiationMessage()
         self.conn.send(init_message)
